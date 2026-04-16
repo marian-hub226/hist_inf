@@ -2,7 +2,6 @@ import os
 import streamlit as st
 import base64
 from openai import OpenAI
-import openai
 from PIL import Image, ImageOps
 import numpy as np
 import pandas as pd
@@ -55,9 +54,10 @@ canvas_result = st_canvas(
 )
 
 ke = st.text_input('Ingresa tu Clave', type="password")
-os.environ['OPENAI_API_KEY'] = ke
-api_key = os.environ['OPENAI_API_KEY']
-client = OpenAI(api_key=api_key)
+if not ke:
+    st.warning("Por favor ingresa tu API key.")
+    st.stop()
+client = OpenAI(api_key=ke)
 
 analyze_button = st.button("Analiza la imagen", type="secondary")
 
@@ -86,7 +86,7 @@ if canvas_result.image_data is not None and api_key and analyze_button:
         try:
             full_response = ""
             message_placeholder = st.empty()
-            response = openai.chat.completions.create(
+            response = client.chat.completions.create(
               model= "gpt-4o-mini",
               messages=[
                 {
@@ -149,14 +149,11 @@ if st.session_state.analysis_done:
             crea {estilo}.
             """
 
-            story_response = openai.chat.completions.create(
+            story_response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": story_prompt}],
                 max_tokens=500,
             )
             st.markdown("**📖 Tu historia:**")
             st.write(story_response.choices[0].message.content)
-
-if not api_key:
-    st.warning("Por favor ingresa tu API key.")
 

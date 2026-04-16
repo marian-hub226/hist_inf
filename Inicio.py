@@ -95,7 +95,7 @@ if canvas_result.image_data is not None and analyze_button:
                             {"type": "input_text", "text": prompt_text},
                             {
                                 "type": "input_image",
-                                "image_base64": base64_image,
+                                "image_url": f"data:image/png;base64,{base64_image}",
                             },
                         ],
                     }

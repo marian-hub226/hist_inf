@@ -1,42 +1,20 @@
-import os
 import streamlit as st
-import base64
-from openai import OpenAI
-from PIL import Image
-import numpy as np
-import pandas as pd
 from streamlit_drawable_canvas import st_canvas
 
-# Inicializar session_state
-if 'analysis_done' not in st.session_state:
-    st.session_state.analysis_done = False
-if 'full_response' not in st.session_state:
-    st.session_state.full_response = ""
-if 'base64_image' not in st.session_state:
-    st.session_state.base64_image = ""
-
-def encode_image_to_base64(image_path):
-    try:
-        with open(image_path, "rb") as image_file:
-            encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
-            return encoded_image
-    except FileNotFoundError:
-        return "Error: La imagen no se encontró en la ruta especificada."
-
-# Configuración de Streamlit
+# Configuración
 st.set_page_config(page_title='Tablero Inteligente')
 st.title('🎨 Tablero Inteligente')
 
 with st.sidebar:
     st.subheader("Acerca de:")
-    st.write("Esta aplicación interpreta tus bocetos usando IA.")
+    st.write("Dibuja algo y crea una historia a partir de tu imaginación.")
     stroke_width = st.slider('Ancho de línea', 1, 30, 5)
-    stroke_color = "#000000" 
+    stroke_color = "#000000"
     bg_color = '#FFFFFF'
 
-st.subheader("Dibuja algo y presiona el botón para analizarlo")
+st.subheader("✏️ Dibuja algo en el panel")
 
-# Componente de Canvas
+# Canvas
 canvas_result = st_canvas(
     fill_color="rgba(255, 165, 0, 0.3)",
     stroke_width=stroke_width,
@@ -48,94 +26,53 @@ canvas_result = st_canvas(
     key="canvas",
 )
 
-ke = st.text_input('Ingresa tu OpenAI API Key', type="password")
+# 🔹 NUEVO: el usuario describe el dibujo
+st.subheader("🧠 Describe tu dibujo")
+descripcion = st.text_input("Ej: Un dragón volando sobre una montaña")
 
-if not ke:
-    st.warning("Por favor ingresa tu API key para continuar.")
-    st.stop()
-
-# Inicializar el cliente de OpenAI con la llave
-client = OpenAI(api_key=ke.strip())
-
-analyze_button = st.button("Analizar dibujo", type="primary")
-
-# Lógica de análisis
-if canvas_result.image_data is not None and analyze_button:
-    with st.spinner("La IA está observando tu dibujo..."):
-        # Procesar la imagen del canvas
-        input_numpy_array = np.array(canvas_result.image_data)
-        input_image = Image.fromarray(input_numpy_array.astype('uint8')).convert('RGB')
-        input_image.save('img.png')
-        
-        st.image("img.png", caption="Tu dibujo procesado")
-        
-        base64_image = encode_image_to_base64("img.png")
-        st.session_state.base64_image = base64_image
-        
-        prompt_text = "Describe en español el dibujo de forma clara e interpretativa. Si es un boceto simple, intenta imaginar qué representa de forma creativa."
-
-        try:
-            # LLAMADA CORREGIDA PARA GPT-4o-mini (Vision)
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": prompt_text},
-                            {
-                                "type": "image_url",
-                                "image_url": {"url": f"data:image/png;base64,{base64_image}"},
-                            },
-                        ],
-                    }
-                ],
-                max_tokens=500,
-            )
-
-            full_response = response.choices[0].message.content
-            st.session_state.full_response = full_response
-            st.session_state.analysis_done = True
-            st.markdown(f"### Análisis de la IA:\n{full_response}")
-
-        except Exception as e:
-            st.error(f"Hubo un error con la API: {e}")
-
-# Funcionalidad de crear historia
-if st.session_state.analysis_done:
+# 🔹 GENERACIÓN DE HISTORIA
+if descripcion:
     st.divider()
-    st.subheader("📚 ¿Quieres crear una historia con este dibujo?")
-    
+    st.subheader("📚 Crear historia")
+
     tipo_historia = st.selectbox(
-        "Selecciona el género:",
+        "Selecciona el tipo de historia:",
         ["Infantil", "Terror", "Ciencia ficción", "Educativa"]
     )
 
     if st.button("✨ Generar historia"):
-        with st.spinner("Escribiendo..."):
-            
-            estilos = {
-                "Infantil": "una historia infantil breve, mágica y apropiada para niños",
-                "Terror": "una historia corta de terror, con mucho suspenso y un final oscuro",
-                "Ciencia ficción": "una historia breve de ciencia ficción con tecnología futurista",
-                "Educativa": "una fábula breve que deje una enseñanza moral o educativa"
-            }
-            
-            estilo_elegido = estilos.get(tipo_historia)
-            story_prompt = f"Basándote en esta descripción de un dibujo: '{st.session_state.full_response}', crea {estilo_elegido}."
+        
+        if tipo_historia == "Infantil":
+            historia = f"""
+Había una vez {descripcion}.
+Era un mundo lleno de magia y aventuras.
+Un día, algo sorprendente ocurrió y todo cambió.
+Al final, todos aprendieron una gran lección y vivieron felices.
+"""
+        
+        elif tipo_historia == "Terror":
+            historia = f"""
+Todo comenzó con {descripcion}.
+Pero algo no estaba bien...
+En la oscuridad, una presencia misteriosa observaba.
+Y desde ese día, nadie volvió a ser el mismo.
+"""
+        
+        elif tipo_historia == "Ciencia ficción":
+            historia = f"""
+En el año 3025, {descripcion}.
+La tecnología había cambiado todo.
+Un evento inesperado desencadenó una gran misión.
+El destino del universo estaba en juego.
+"""
+        
+        elif tipo_historia == "Educativa":
+            historia = f"""
+Había una vez {descripcion}.
+A través de su experiencia, aprendió algo importante.
+Con esfuerzo y valentía, logró superar los desafíos.
+La enseñanza fue clara: nunca rendirse.
+"""
 
-            try:
-                # LLAMADA CORREGIDA PARA TEXTO
-                story_response = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "user", "content": story_prompt}
-                    ],
-                    max_tokens=600,
-                )
-
-                st.markdown("---")
-                st.write(story_response.choices[0].message.content)
-            
-            except Exception as e:
-                st.error(f"Error al generar la historia: {e}")
+        st.markdown("### 📖 Tu historia:")
+        st.write(historia)

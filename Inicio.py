@@ -55,7 +55,7 @@ if not ke:
     st.stop()
 
 # Inicializar el cliente de OpenAI con la llave
-client = OpenAI(api_key=ke)
+client = OpenAI(api_key=ke.strip())
 
 analyze_button = st.button("Analizar dibujo", type="primary")
 

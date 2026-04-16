@@ -56,11 +56,7 @@ canvas_result = st_canvas(
 
 ke = st.text_input('Ingresa tu Clave', type="password")
 os.environ['OPENAI_API_KEY'] = ke
-
-# Retrieve the OpenAI API Key
 api_key = os.environ['OPENAI_API_KEY']
-
-# Initialize the OpenAI client with the API key
 client = OpenAI(api_key=api_key)
 
 analyze_button = st.button("Analiza la imagen", type="secondary")
@@ -74,11 +70,17 @@ if canvas_result.image_data is not None and api_key and analyze_button:
         input_image = Image.fromarray(input_numpy_array.astype('uint8')).convert('RGBA')
         input_image.save('img.png')
         
-        # Codificar la imagen en base64
+        # Cambio: mostrar imagen dibujada
+        st.image("img.png", caption="Tu dibujo")
+        
         base64_image = encode_image_to_base64("img.png")
         st.session_state.base64_image = base64_image
             
-        prompt_text = (f"Describe in spanish briefly the image")
+        # Cambio: mejor prompt de interpretación
+        prompt_text = """
+        Describe en español el dibujo de forma clara e interpretativa.
+        Si es un boceto simple, intenta imaginar qué representa.
+        """
     
         # Make the request to the OpenAI API
         try:
@@ -113,9 +115,6 @@ if canvas_result.image_data is not None and api_key and analyze_button:
             # Guardar en session_state
             st.session_state.full_response = full_response
             st.session_state.analysis_done = True
-            
-            if Expert== profile_imgenh:
-               st.session_state.mi_respuesta= response.choices[0].message.content
     
         except Exception as e:
             st.error(f"An error occurred: {e}")
@@ -125,19 +124,39 @@ if st.session_state.analysis_done:
     st.divider()
     st.subheader("📚 ¿Quieres crear una historia?")
     
-    if st.button("✨ Crear historia infantil"):
+    # Cambio: selector de tipo de historia
+    tipo_historia = st.selectbox(
+        "Selecciona el tipo de historia:",
+        ["Infantil", "Terror", "Ciencia ficción", "Educativa"]
+    )
+
+    if st.button("✨ Crear historia"):
         with st.spinner("Creando historia..."):
-            story_prompt = f"Basándote en esta descripción: '{st.session_state.full_response}', crea una historia infantil breve y entretenida. La historia debe ser creativa y apropiada para niños."
             
+            # Cambio: lógica dinámica
+            if tipo_historia == "Infantil":
+                estilo = "una historia infantil breve, creativa y apropiada para niños"
+            elif tipo_historia == "Terror":
+                estilo = "una historia corta de terror, con suspenso y un final impactante"
+            elif tipo_historia == "Ciencia ficción":
+                estilo = "una historia breve de ciencia ficción, futurista e imaginativa"
+            elif tipo_historia == "Educativa":
+                estilo = "una historia breve educativa que deje una enseñanza clara"
+                
+            # Cambio: prompt dinámico
+            story_prompt = f"""
+            Basándote en esta descripción: '{st.session_state.full_response}',
+            crea {estilo}.
+            """
+
             story_response = openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[{"role": "user", "content": story_prompt}],
                 max_tokens=500,
             )
-            
             st.markdown("**📖 Tu historia:**")
             st.write(story_response.choices[0].message.content)
 
-# Warnings for user action required
 if not api_key:
     st.warning("Por favor ingresa tu API key.")
+

@@ -86,28 +86,25 @@ if canvas_result.image_data is not None and analyze_button:
         try:
             full_response = ""
             message_placeholder = st.empty()
-            response = client.chat.completions.create(
-              model= "gpt-4o-mini",
-              messages=[
-                {
-                   "role": "user",
-                   "content": [
-                     {"type": "text", "text": prompt_text},
-                     {
-                       "type": "image_url",
-                       "image_url": {
-                         "url": f"data:image/png;base64,{base64_image}",
-                       },
-                     },
-                   ],
-                  }
+            response = client.responses.create(
+                model="gpt-4o-mini",
+                input=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "input_text", "text": prompt_text},
+                            {
+                                "type": "input_image",
+                                "image_base64": base64_image,
+                            },
+                        ],
+                    }
                 ],
-              max_tokens=500,
-              )
-            
-            if response.choices[0].message.content is not None:
-                    full_response += response.choices[0].message.content
-                    message_placeholder.markdown(full_response + "▌")
+                max_output_tokens=500,
+            )
+
+            full_response = response.output[0].content[0].text
+            message_placeholder.markdown(full_response)
             
             # Final update to placeholder after the stream ends
             message_placeholder.markdown(full_response)
@@ -149,11 +146,11 @@ if st.session_state.analysis_done:
             crea {estilo}.
             """
 
-            story_response = client.chat.completions.create(
+            story_response = client.responses.create(
                 model="gpt-4o-mini",
-                messages=[{"role": "user", "content": story_prompt}],
-                max_tokens=500,
+                input=story_prompt,
+                max_output_tokens=500,
             )
-            st.markdown("**📖 Tu historia:**")
-            st.write(story_response.choices[0].message.content)
+
+            st.write(story_response.output[0].content[0].text)
 
